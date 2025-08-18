@@ -1,0 +1,46 @@
+{
+  "name": "sculpo-database",
+  "version": "1.0.0",
+  "description": "Shared database services and API layer for the Sculpo application",
+  "main": "index.ts",
+  "types": "index.ts",
+  "exports": {
+    ".": {
+      "import": "./index.ts",
+      "require": "./dist/index.js",
+      "types": "./index.ts"
+    }
+  },
+  "scripts": {
+    "start": "node dist/index.js",
+    "dev": "nodemon dist/index.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "build": "tsc",
+    "build:watch": "tsc --watch"
+  },
+  "keywords": [
+    "database",
+    "sculpo",
+    "services",
+    "shared",
+    "api"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.6.2",
+    "@react-native-async-storage/async-storage": "^1.19.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "jest": "^29.7.0",
+    "typescript": "^5.3.2",
+    "@types/node": "^20.10.0",
+    "@types/jest": "^29.5.8"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  }
+} 

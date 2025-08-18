@@ -1,0 +1,10 @@
+export enum Collection {
+    BOOKINGS = "bookings",
+    PROFILES = "profiles",
+    DELIVERY_FORMATS = "deliveryFormats",
+    GOALS = "goals",
+    ONBOARDING_QUESTIONS = "onboardingQuestions",
+    ONBOARDING_ANSWERS = "onboardingAnswers",
+    SERVICES = "services",
+    EMAILS = "mail",
+}
