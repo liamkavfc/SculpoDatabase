@@ -13,7 +13,7 @@ const {getFirestore} = require("firebase-admin/firestore");
 
 
 export const getUsersByTrainerId = onCall(
-    { cors: ["54nqvew-liamksoftware-8081.exp.direct"] },
+    { cors: false },
     async (req: any) => {
         info("getUsersByTrainerId Invoked", {structuredData: true});
         const trainerId = req.data.trainerId;

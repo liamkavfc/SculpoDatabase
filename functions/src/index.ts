@@ -11,7 +11,7 @@ import {setGlobalOptions} from "firebase-functions";
 import * as admin from "firebase-admin";
 import { getUsersByTrainerId } from "./admin/users/getUsersByTrainerId";
 import { sendBookingConfirmation } from "./admin/users/bookings/sendBookingConfirmation";
-import { fetchDashboardMetrics } from "./admin/dahboardMetrics";
+import { fetchDashboardMetrics } from "./admin/users/fetchDashboardMetrics";
 
 admin.initializeApp();
 
