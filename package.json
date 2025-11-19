@@ -2,14 +2,16 @@
   "name": "sculpo-database",
   "version": "1.0.0",
   "description": "Shared database services and API layer for the Sculpo application",
-  "main": "index.ts",
-  "types": "index.ts",
+  "main": "./index.ts",
+  "types": "./index.ts",
   "exports": {
     ".": {
       "import": "./index.ts",
       "require": "./dist/index.js",
       "types": "./index.ts"
-    }
+    },
+    "./services/*": "./services/*.ts",
+    "./models/*": "./models/*.ts"
   },
   "scripts": {
     "start": "node dist/index.js",
@@ -17,7 +19,9 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "build": "tsc",
-    "build:watch": "tsc --watch"
+    "build:watch": "tsc --watch",
+    "emulators": "firebase emulators:start",
+    "emulators:debug": "firebase emulators:start --inspect-functions"
   },
   "keywords": [
     "database",
@@ -29,18 +33,23 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "axios": "^1.6.2",
-    "@react-native-async-storage/async-storage": "^1.19.5"
+    "@react-native-async-storage/async-storage": "2.1.2"
+  },
+  "peerDependencies": {
+    "firebase": "^12.1.0",
+    "react": ">=18.0.0",
+    "react-native": ">=0.70.0",
+    "expo-router": ">=5.0.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2",
-    "jest": "^29.7.0",
-    "typescript": "^5.3.2",
+    "@types/jest": "^29.5.8",
     "@types/node": "^20.10.0",
-    "@types/jest": "^29.5.8"
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.2",
+    "typescript": "^5.9.2"
   },
   "engines": {
     "node": ">=16.0.0",
     "npm": ">=8.0.0"
   }
-} 
+}
