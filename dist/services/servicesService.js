@@ -5,6 +5,7 @@ class ServicesService {
         this.apiUrl = `${environment.apiUrl}/api/services`;
     }
     async getAllServicesByUserId(userId) {
+        console.log("Getting services for user", userId);
         const response = await axiosInstance.get(`${this.apiUrl}/user/${userId}`);
         console.log("response", response.data);
         return response.data;

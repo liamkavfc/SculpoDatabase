@@ -38,6 +38,9 @@ class ProfileService {
                 phoneNumber: clientData.tel,
                 userType: UserType.Client,
                 about: null,
+                qualifications: null,
+                specialisms: null,
+                gyms: null,
                 newPassword: null,
                 userId: clientData.userId,
                 height: null,
@@ -124,6 +127,19 @@ class ProfileService {
             return null;
         }
     }
+    async getExternalClients() {
+        try {
+            // First get all clients
+            const clients = await this.getAll();
+            // Then filter out the clients that are not external
+            const externalClients = clients.filter((client) => client.userType === UserType.ExternalClient);
+            return externalClients;
+        }
+        catch (error) {
+            console.error('Error fetching external clients:', error.response?.data || error.message);
+            return [];
+        }
+    }
 }
 export default new ProfileService();
 export var UserType;
@@ -131,4 +147,5 @@ export var UserType;
     UserType[UserType["Admin"] = 0] = "Admin";
     UserType[UserType["Trainer"] = 1] = "Trainer";
     UserType[UserType["Client"] = 2] = "Client";
+    UserType[UserType["ExternalClient"] = 3] = "ExternalClient";
 })(UserType || (UserType = {}));

@@ -11,6 +11,7 @@ export * from './models/deliverFormatModels';
 export * from './models/servicesModels';
 export * from './models/onboardingQuestionnaireModels';
 export * from './models/goalsModels';
+export * from './models/dashboardModels';
 export type { ProfileListViewModel, ProfileFullViewModel, CreateClientProfileDto, ExtendedProfileInfo } from './profileService';
 export { UserType } from './profileService';
 export type { LoginDto, LoginResponseDto, RegisterDto, RegisterResponseDto } from './authService';

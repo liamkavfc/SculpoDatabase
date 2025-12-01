@@ -30,13 +30,48 @@ class AuthService {
     }
     // LOGOUT
     async logout() {
-        await AsyncStorage.removeItem('userToken');
-        await AsyncStorage.removeItem('userId');
-        await AsyncStorage.removeItem('refreshToken');
-        // Clear any other stored user data
-        await AsyncStorage.removeItem('userProfile'); // In case we cache profile data later
-        // Note: Navigation should be handled by the consuming application
-        return true;
+        try {
+            const refreshToken = await this.getRefreshToken();
+            // Try to call server logout endpoint if we have a refresh token
+            if (refreshToken) {
+                try {
+                    await axiosInstance.post(`${this.apiUrl}/logout`, {
+                        refreshToken: refreshToken
+                    });
+                    console.log('Server logout successful');
+                }
+                catch (serverError) {
+                    console.warn('Server logout failed, continuing with local logout:', serverError);
+                    // Continue with local logout even if server call fails
+                }
+            }
+            else {
+                console.log('No refresh token found, performing local logout only');
+            }
+            // Always clear local storage regardless of server response
+            await AsyncStorage.removeItem('userToken');
+            await AsyncStorage.removeItem('userId');
+            await AsyncStorage.removeItem('refreshToken');
+            await AsyncStorage.removeItem('userProfile');
+            console.log('Local logout completed');
+            return true;
+        }
+        catch (error) {
+            console.error('Logout error:', error);
+            // Even if there's an error, try to clear local storage
+            try {
+                await AsyncStorage.removeItem('userToken');
+                await AsyncStorage.removeItem('userId');
+                await AsyncStorage.removeItem('refreshToken');
+                await AsyncStorage.removeItem('userProfile');
+                console.log('Fallback local logout completed');
+            }
+            catch (fallbackError) {
+                console.error('Even fallback logout failed:', fallbackError);
+            }
+            // Always return true for logout - we don't want logout to "fail"
+            return true;
+        }
     }
     // GET TOKEN
     getToken() {
@@ -130,6 +165,21 @@ class AuthService {
         // Store the new tokens
         await this.storeAuthData(data.idToken, data.userId, data.refreshToken);
         return data;
+    }
+    // VERIFY TOKEN
+    async verifyToken(token) {
+        try {
+            const response = await axiosInstance.get(`${this.apiUrl}/verify-token`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            return response.status === 200;
+        }
+        catch (error) {
+            console.error('Token verification failed:', error);
+            return false;
+        }
     }
     // CHECK IF TOKEN IS EXPIRED AND REFRESH IF NEEDED
     async ensureValidToken() {

@@ -3,6 +3,8 @@
 /// Corresponds to the C# models in ScupoApi
 /// </summary>
 
+import { Timestamp } from "firebase-admin/firestore";
+
 // Enums
 export enum BookingStatus {
     Pending = 0,
@@ -27,6 +29,9 @@ export interface CreateBookingDto {
     deliveryFormatOptionId: string;
     notes?: string;
     clientName?: string; // Add clientName for display purposes
+    duration?: number; // Duration in minutes (for VariableDuration services, this is the selected duration)
+    // For FixedDuration services, duration is taken from the service definition
+    // For VariableDuration services, duration must be provided when creating the booking
 }
 
 export interface BookingViewModel {
@@ -37,14 +42,14 @@ export interface BookingViewModel {
     clientName: string;
     trainerId: string;
     trainerName: string;
-    bookingDate: Date;
-    startTime: Date; // Changed from string to Date for consistency
+    bookingDate: Timestamp;
+    startTime: Timestamp; // Changed from string to Date for consistency
     endTime: Date;   // Changed from string to Date for consistency
     status: BookingStatus;
     price: number;
     notes?: string;
-    createdAt: Date;
-    updatedAt?: Date;
+    createdAt: Timestamp;
+    updatedAt?: Timestamp;
 }
 
 export interface UpdateBookingStatusDto {

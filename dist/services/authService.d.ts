@@ -13,6 +13,7 @@ declare class AuthService {
     getCachedUserProfile(): Promise<any | null>;
     getRefreshToken(): Promise<string | null>;
     refreshToken(): Promise<RefreshTokenResponseDto>;
+    verifyToken(token: string): Promise<boolean>;
     ensureValidToken(): Promise<string | null>;
 }
 declare const _default: AuthService;

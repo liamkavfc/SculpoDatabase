@@ -7,4 +7,6 @@ export enum Collection {
     ONBOARDING_ANSWERS = "onboardingAnswers",
     SERVICES = "services",
     EMAILS = "mail",
+    TRAINER_AVAILABILITY = "trainerAvailability",
+    BLOCKED_TIMES = "blockedTimes",
 }

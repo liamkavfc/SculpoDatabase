@@ -1,5 +1,3 @@
-import { environment } from "../environment";
-import axiosInstance from './axiosConfig';
 import { 
     CreateBookingDto, 
     BookingViewModel, 
@@ -16,59 +14,57 @@ import {
     BookingErrorResponse
 } from "./models/bookingModels";
 import { ServiceFullViewModel } from "./models/servicesModels";
+import { Firestore, collection, query, where, getDocs, doc, getDoc, addDoc, setDoc, serverTimestamp, Timestamp, orderBy } from 'firebase/firestore';
+import { parseFirestoreDate, parseBookingDateTime } from './utils/firestoreUtils';
+import { AvailabilityService } from './availabilityService';
 
 class BookingService {
-
-    private apiUrl: string;
-
-    constructor() {
-        this.apiUrl = `${environment.apiUrl}/api/booking`;
-    }
-
-    // Booking Management Methods
+    private db: Firestore | null = null;
 
     /**
+     * Initialize the service with a Firestore instance
+     * @param db - Firestore database instance
+     */
+    initialize(db: Firestore) {
+        this.db = db;
+    }
+
+    // ========================================
+    // DEPRECATED API METHODS - Use Firestore methods below
+    // ========================================
+
+    /**
+     * @deprecated Use createBookingInFirestore() instead
      * Create a new booking with comprehensive validation
-     * @param booking - The booking data to create
-     * @returns Promise with booking creation response
-     * @throws BookingValidationException with specific error codes for validation failures
      */
     async createBooking(booking: CreateBookingDto): Promise<CreateBookingResponse> {
-        try {
-            const response = await axiosInstance.post<CreateBookingResponse>(`${this.apiUrl}`, booking);
-            return response.data;
-        } catch (error: any) {
-            // Re-throw with additional context while preserving original error structure
-            if (error.response?.data) {
-                // Backend returned structured error response
-                throw {
-                    ...error,
-                    validationError: error.response.data as BookingErrorResponse
-                };
-            }
-            throw error;
-        }
-    }
-
-    async getBookingById(bookingId: string): Promise<BookingViewModel> {
-        const response = await axiosInstance.get<BookingViewModel>(`${this.apiUrl}/${bookingId}`);
-        return response.data;
-    }
-
-    async getUserBookings(userId: string, status?: string): Promise<BookingViewModel[]> {
-        const url = status ? `${this.apiUrl}/user/${userId}?status=${status}` : `${this.apiUrl}/user/${userId}`;
-        const response = await axiosInstance.get<BookingViewModel[]>(url);
-        return response.data;
+        console.warn('createBooking() is deprecated. Use createBookingInFirestore() instead.');
+        return this.createBookingInFirestore(booking);
     }
 
     /**
+     * @deprecated Use getBookingById() Firestore method instead
+     */
+    async getBookingByIdOld(bookingId: string): Promise<BookingViewModel> {
+        console.warn('getBookingByIdOld() is deprecated. Use getBookingById() instead.');
+        return this.getBookingById(bookingId);
+    }
+
+    /**
+     * @deprecated Use getBookingsByUserId() instead
+     */
+    async getUserBookings(userId: string, status?: string): Promise<BookingViewModel[]> {
+        console.warn('getUserBookings() is deprecated. Use getBookingsByUserId() instead.');
+        const bookings = await this.getBookingsByUserId(userId);
+        if (status) {
+            return bookings.filter(b => b.status.toString() === status);
+        }
+        return bookings;
+    }
+
+    /**
+     * @deprecated Use Firestore queries instead
      * Get all bookings (admin only) with optional filtering
-     * @param status - Optional status filter
-     * @param trainerId - Optional trainer filter
-     * @param clientId - Optional client filter
-     * @param startDate - Optional start date filter
-     * @param endDate - Optional end date filter
-     * @returns Promise with array of all bookings
      */
     async getAllBookings(filters?: {
         status?: string;
@@ -77,52 +73,125 @@ class BookingService {
         startDate?: Date;
         endDate?: Date;
     }): Promise<BookingViewModel[]> {
-        let url = `${this.apiUrl}/admin/all`;
-        const params = new URLSearchParams();
-        
-        if (filters?.status) params.append('status', filters.status);
-        if (filters?.trainerId) params.append('trainerId', filters.trainerId);
-        if (filters?.clientId) params.append('clientId', filters.clientId);
-        if (filters?.startDate) params.append('startDate', filters.startDate.toISOString());
-        if (filters?.endDate) params.append('endDate', filters.endDate.toISOString());
-        
-        if (params.toString()) {
-            url += `?${params.toString()}`;
+        console.warn('getAllBookings() is deprecated. Use direct Firestore queries instead.');
+        if (!this.db) {
+            throw new Error('BookingService not initialized. Call initialize(db) first.');
         }
-        
-        const response = await axiosInstance.get<BookingViewModel[]>(url);
-        return response.data;
+
+        try {
+            let bookingsQuery: any = collection(this.db, 'bookings');
+
+            // Apply filters
+            if (filters?.trainerId) {
+                bookingsQuery = query(bookingsQuery, where('trainerId', '==', filters.trainerId));
+            }
+            if (filters?.clientId) {
+                bookingsQuery = query(bookingsQuery, where('clientId', '==', filters.clientId));
+            }
+            if (filters?.startDate) {
+                bookingsQuery = query(bookingsQuery, where('bookingDate', '>=', filters.startDate));
+            }
+            if (filters?.endDate) {
+                bookingsQuery = query(bookingsQuery, where('bookingDate', '<=', filters.endDate));
+            }
+
+            const snapshot = await getDocs(bookingsQuery);
+            let bookings = snapshot.docs.map((docSnapshot) => {
+                const data = docSnapshot.data();
+                const bookingDate = parseFirestoreDate(data.bookingDate);
+                const startTime = parseFirestoreDate(data.startTime);
+                const endTime = parseFirestoreDate(data.endTime);
+                const createdAt = parseFirestoreDate(data.createdAt);
+                const updatedAt = parseFirestoreDate(data.updatedAt);
+
+                return {
+                    id: docSnapshot.id,
+                    ...data,
+                    bookingDate: bookingDate || new Date(),
+                    startTime: startTime || new Date(),
+                    endTime: endTime || new Date(),
+                    createdAt: createdAt || new Date(),
+                    updatedAt: updatedAt || new Date(),
+                } as BookingViewModel;
+            });
+
+            // Filter by status client-side if provided
+            if (filters?.status) {
+                bookings = bookings.filter(b => b.status.toString() === filters.status);
+            }
+
+            return bookings;
+        } catch (error) {
+            console.error('Error fetching all bookings:', error);
+            return [];
+        }
     }
 
-    async updateBookingStatus(bookingId: string, statusUpdate: UpdateBookingStatusDto): Promise<void> {
-        await axiosInstance.put(`${this.apiUrl}/${bookingId}/status`, statusUpdate);
-    }
-
-    // Availability Methods
-
+    /**
+     * @deprecated Use AvailabilityService.getTrainerAvailability() instead
+     */
     async getTrainerAvailability(request: GetAvailabilityDto): Promise<TrainerAvailabilityViewModel[]> {
-        const response = await axiosInstance.post<TrainerAvailabilityViewModel[]>(`${this.apiUrl}/availability`, request);
-        return response.data;
+        console.warn('getTrainerAvailability() is deprecated. Use AvailabilityService.getTrainerAvailability() instead.');
+        // This is a complex method that would need significant refactoring
+        // For now, delegate to AvailabilityService if available
+        throw new Error('This method is deprecated. Use AvailabilityService.getTrainerAvailability() instead.');
     }
 
+    /**
+     * @deprecated Use AvailabilityService.getNextAvailableSlots() instead
+     */
     async getNextAvailableSlots(request: NextAvailableSlotsDto): Promise<NextAvailableSlotViewModel[]> {
-        const response = await axiosInstance.post<NextAvailableSlotViewModel[]>(`${this.apiUrl}/availability/next`, request);
-        return response.data;
+        console.warn('getNextAvailableSlots() is deprecated. Use AvailabilityService.getNextAvailableSlots() instead.');
+        return AvailabilityService.getNextAvailableSlots(request.trainerId, request.count || 3, request.serviceId);
     }
 
-    // Trainer Schedule Management
-
+    /**
+     * @deprecated Use AvailabilityService.setTrainerAvailability() instead
+     */
     async setTrainerAvailability(trainerId: string, availabilities: SetTrainerAvailabilityDto[]): Promise<void> {
-        await axiosInstance.post(`${this.apiUrl}/trainer/${trainerId}/availability`, availabilities);
+        console.warn('setTrainerAvailability() is deprecated. Use AvailabilityService.setTrainerAvailability() instead.');
+        // Convert array format to individual calls
+        for (const availability of availabilities) {
+            await AvailabilityService.setTrainerAvailability(
+                trainerId,
+                availability.dayOfWeek,
+                availability.startTime,
+                availability.endTime,
+                availability.isAvailable
+            );
+        }
     }
 
+    /**
+     * @deprecated Use AvailabilityService.getTrainerAvailability() instead
+     */
     async getTrainerWorkingHours(trainerId: string): Promise<SetTrainerAvailabilityDto[]> {
-        const response = await axiosInstance.get<SetTrainerAvailabilityDto[]>(`${this.apiUrl}/trainer/${trainerId}/hours`);
-        return response.data;
+        console.warn('getTrainerWorkingHours() is deprecated. Use AvailabilityService.getTrainerAvailability() instead.');
+        const availability = await AvailabilityService.getTrainerAvailability(trainerId);
+        return availability.weeklyAvailability.map(avail => ({
+            trainerId: avail.trainerId,
+            dayOfWeek: avail.dayOfWeek,
+            startTime: avail.startTime,
+            endTime: avail.endTime,
+            isAvailable: avail.isAvailable,
+        }));
     }
 
+    /**
+     * @deprecated Use AvailabilityService.blockTimeSlot() instead
+     */
     async blockTimeSlot(trainerId: string, blockRequest: BlockTimeSlotDto): Promise<void> {
-        await axiosInstance.post(`${this.apiUrl}/trainer/${trainerId}/block`, blockRequest);
+        console.warn('blockTimeSlot() is deprecated. Use AvailabilityService.blockTimeSlot() instead.');
+        const dateStr = blockRequest.date instanceof Date 
+            ? blockRequest.date.toISOString().split('T')[0] 
+            : blockRequest.date;
+        await AvailabilityService.blockTimeSlot(
+            trainerId,
+            dateStr,
+            blockRequest.startTime,
+            blockRequest.endTime,
+            blockRequest.reason
+        );
     }
 
     // ServiceView Helper Methods
@@ -300,6 +369,377 @@ class BookingService {
      */
     async createBookingRequest(request: CreateBookingDto): Promise<CreateBookingResponse> {
         return await this.createBooking(request);
+    }
+
+    // ========================================
+    // FIRESTORE-BASED METHODS (Direct Queries)
+    // ========================================
+
+    /**
+     * Get all bookings for a user (as trainer or client)
+     * Uses direct Firestore queries for better performance
+     * @param userId - User ID to get bookings for
+     * @returns Array of bookings with enriched client/trainer names
+     */
+    async getBookingsByUserId(userId: string): Promise<BookingViewModel[]> {
+        if (!this.db) {
+            throw new Error('BookingService not initialized. Call initialize(db) first.');
+        }
+
+        if (!userId) {
+            console.warn('getBookingsByUserId: userId is required');
+            return [];
+        }
+
+        try {
+            // Fetch bookings where user is the trainer
+            const trainerBookingsQuery = query(
+                collection(this.db, 'bookings'),
+                where('trainerId', '==', userId)
+            );
+            const trainerBookingsSnapshot = await getDocs(trainerBookingsQuery);
+
+            // Fetch bookings where user is the client
+            const clientBookingsQuery = query(
+                collection(this.db, 'bookings'),
+                where('clientId', '==', userId)
+            );
+            const clientBookingsSnapshot = await getDocs(clientBookingsQuery);
+
+            // Combine and deduplicate bookings
+            const bookingsMap = new Map<string, any>();
+
+            // Process trainer bookings
+            trainerBookingsSnapshot.docs.forEach((docSnapshot) => {
+                const data = docSnapshot.data();
+                bookingsMap.set(docSnapshot.id, {
+                    id: docSnapshot.id,
+                    ...data,
+                });
+            });
+
+            // Process client bookings (avoid duplicates)
+            clientBookingsSnapshot.docs.forEach((docSnapshot) => {
+                if (!bookingsMap.has(docSnapshot.id)) {
+                    const data = docSnapshot.data();
+                    bookingsMap.set(docSnapshot.id, {
+                        id: docSnapshot.id,
+                        ...data,
+                    });
+                }
+            });
+
+            const allBookings = Array.from(bookingsMap.values());
+
+            // Enrich bookings with client and trainer names
+            if (allBookings.length > 0) {
+                // Get unique client IDs
+                const clientIds = [...new Set(allBookings.map((b: any) => b.clientId).filter(Boolean))];
+                // Get unique trainer IDs
+                const trainerIds = [...new Set(allBookings.map((b: any) => b.trainerId).filter(Boolean))];
+
+                // Fetch client profiles using document references
+                const clientNamesMap = new Map<string, string>();
+                const clientPromises = clientIds.map(async (clientId) => {
+                    try {
+                        const clientRef = doc(this.db!, 'profiles', clientId);
+                        const clientSnapshot = await getDoc(clientRef);
+                        if (clientSnapshot.exists()) {
+                            const data = clientSnapshot.data();
+                            const name = `${data.firstName || ''} ${data.lastName || ''}`.trim() || data.name || 'Unknown';
+                            return { id: clientId, name };
+                        }
+                        return null;
+                    } catch (error) {
+                        console.warn(`Error fetching client profile ${clientId}:`, error);
+                        return null;
+                    }
+                });
+                const clientResults = await Promise.all(clientPromises);
+                clientResults.forEach((result) => {
+                    if (result) {
+                        clientNamesMap.set(result.id, result.name);
+                    }
+                });
+
+                // Fetch trainer profiles using document references
+                const trainerNamesMap = new Map<string, string>();
+                const trainerPromises = trainerIds.map(async (trainerId) => {
+                    try {
+                        const trainerRef = doc(this.db!, 'profiles', trainerId);
+                        const trainerSnapshot = await getDoc(trainerRef);
+                        if (trainerSnapshot.exists()) {
+                            const data = trainerSnapshot.data();
+                            const name = `${data.firstName || ''} ${data.lastName || ''}`.trim() || data.name || 'Unknown';
+                            return { id: trainerId, name };
+                        }
+                        return null;
+                    } catch (error) {
+                        console.warn(`Error fetching trainer profile ${trainerId}:`, error);
+                        return null;
+                    }
+                });
+                const trainerResults = await Promise.all(trainerPromises);
+                trainerResults.forEach((result) => {
+                    if (result) {
+                        trainerNamesMap.set(result.id, result.name);
+                    }
+                });
+
+                // Add names to bookings
+                allBookings.forEach((booking: any) => {
+                    if (booking.clientId && clientNamesMap.has(booking.clientId)) {
+                        booking.clientName = clientNamesMap.get(booking.clientId);
+                    }
+                    if (booking.trainerId && trainerNamesMap.has(booking.trainerId)) {
+                        booking.trainerName = trainerNamesMap.get(booking.trainerId);
+                    }
+                });
+            }
+
+            // Parse dates in bookings
+            const processedBookings: BookingViewModel[] = allBookings.map((booking: any) => {
+                const bookingDate = parseFirestoreDate(booking.bookingDate);
+                const startTime = parseBookingDateTime(booking, 'startTime');
+                const endTime = parseBookingDateTime(booking, 'endTime');
+                const createdAt = parseFirestoreDate(booking.createdAt);
+                const updatedAt = parseFirestoreDate(booking.updatedAt);
+
+                return {
+                    ...booking,
+                    bookingDate: bookingDate || new Date(),
+                    startTime: startTime || new Date(),
+                    endTime: endTime || new Date(),
+                    createdAt: createdAt || new Date(),
+                    updatedAt: updatedAt || new Date(),
+                } as BookingViewModel;
+            });
+
+            return processedBookings;
+        } catch (error) {
+            console.error('Error fetching bookings by user ID:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Send booking confirmation email
+     * Creates an email record in Firestore for processing
+     * @param bookingId - The booking ID to confirm
+     */
+    async sendBookingConfirmation(bookingId: string): Promise<void> {
+        if (!this.db) {
+            throw new Error('BookingService not initialized. Call initialize(db) first.');
+        }
+
+        if (!bookingId) {
+            throw new Error('bookingId is required');
+        }
+
+        try {
+            // Get booking
+            const bookingRef = doc(this.db, 'bookings', bookingId);
+            const bookingSnapshot = await getDoc(bookingRef);
+
+            if (!bookingSnapshot.exists()) {
+                throw new Error('Booking not found');
+            }
+
+            const bookingData = bookingSnapshot.data();
+
+            // Get client profile
+            const clientRef = doc(this.db, 'profiles', bookingData.clientId);
+            const clientSnapshot = await getDoc(clientRef);
+
+            if (!clientSnapshot.exists()) {
+                throw new Error('Client not found');
+            }
+
+            // Get trainer profile
+            const trainerRef = doc(this.db, 'profiles', bookingData.trainerId);
+            const trainerSnapshot = await getDoc(trainerRef);
+
+            if (!trainerSnapshot.exists()) {
+                throw new Error('Trainer not found');
+            }
+
+            const trainerData = trainerSnapshot.data();
+            const trainerName = `${trainerData.firstName || ''} ${trainerData.lastName || ''}`.trim() || trainerData.name || 'Trainer';
+
+            // Create email record
+            await addDoc(collection(this.db, 'mail'), {
+                to: 'lksoftwaredevelopment@outlook.com', // TODO: Use actual client email
+                message: {
+                    subject: 'Booking Confirmation',
+                    text: 'Your booking has been confirmed',
+                    html: `<p>Your booking has been confirmed by ${trainerName}</p>`,
+                },
+                createdAt: serverTimestamp(),
+            });
+
+            console.log(`Booking confirmation email queued for booking ${bookingId}`);
+        } catch (error) {
+            console.error('Error sending booking confirmation:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Create a booking directly in Firestore
+     * @param bookingData - Booking data to create
+     * @returns Created booking ID
+     */
+    async createBookingInFirestore(bookingData: any): Promise<{ bookingId: string }> {
+        if (!this.db) {
+            throw new Error('BookingService not initialized. Call initialize(db) first.');
+        }
+
+        try {
+            const bookingDoc = {
+                ...bookingData,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+            };
+
+            const docRef = await addDoc(collection(this.db, 'bookings'), bookingDoc);
+            return { bookingId: docRef.id };
+        } catch (error) {
+            console.error('Error creating booking in Firestore:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get a booking by ID with enriched data
+     * @param bookingId - Booking ID to fetch
+     * @returns Booking view model with client and trainer names
+     */
+    async getBookingById(bookingId: string): Promise<BookingViewModel | null> {
+        if (!this.db) {
+            throw new Error('BookingService not initialized. Call initialize(db) first.');
+        }
+
+        if (!bookingId) {
+            throw new Error('bookingId is required');
+        }
+
+        try {
+            const bookingRef = doc(this.db, 'bookings', bookingId);
+            const bookingSnapshot = await getDoc(bookingRef);
+
+            if (!bookingSnapshot.exists()) {
+                return null;
+            }
+
+            const data = bookingSnapshot.data();
+
+            // Get service details
+            let serviceTitle = 'Unknown Service';
+            if (data.serviceId) {
+                try {
+                    const serviceRef = doc(this.db, 'services', data.serviceId);
+                    const serviceSnapshot = await getDoc(serviceRef);
+                    if (serviceSnapshot.exists()) {
+                        serviceTitle = serviceSnapshot.data().title || 'Unknown Service';
+                    }
+                } catch (error) {
+                    console.warn(`Error fetching service for booking ${bookingId}:`, error);
+                }
+            }
+
+            // Get client details
+            let clientName = 'Unknown Client';
+            if (data.clientId) {
+                try {
+                    const clientRef = doc(this.db, 'profiles', data.clientId);
+                    const clientSnapshot = await getDoc(clientRef);
+                    if (clientSnapshot.exists()) {
+                        const clientData = clientSnapshot.data();
+                        clientName = `${clientData.firstName || ''} ${clientData.lastName || ''}`.trim() 
+                            || clientData.name 
+                            || 'Unknown Client';
+                    }
+                } catch (error) {
+                    console.warn(`Error fetching client for booking ${bookingId}:`, error);
+                }
+            }
+
+            // Get trainer details
+            let trainerName = 'Unknown Trainer';
+            if (data.trainerId) {
+                try {
+                    const trainerRef = doc(this.db, 'profiles', data.trainerId);
+                    const trainerSnapshot = await getDoc(trainerRef);
+                    if (trainerSnapshot.exists()) {
+                        const trainerData = trainerSnapshot.data();
+                        trainerName = `${trainerData.firstName || ''} ${trainerData.lastName || ''}`.trim() 
+                            || trainerData.name 
+                            || 'Unknown Trainer';
+                    }
+                } catch (error) {
+                    console.warn(`Error fetching trainer for booking ${bookingId}:`, error);
+                }
+            }
+
+            const bookingDate = parseFirestoreDate(data.bookingDate);
+            const startTime = parseFirestoreDate(data.startTime);
+            const endTime = parseFirestoreDate(data.endTime);
+            const createdAt = parseFirestoreDate(data.createdAt);
+            const updatedAt = parseFirestoreDate(data.updatedAt);
+
+            return {
+                id: bookingSnapshot.id,
+                bookingDate: bookingDate || new Date(),
+                startTime: startTime || new Date(),
+                endTime: endTime || new Date(),
+                status: data.status || 0,
+                price: data.price || 0,
+                notes: data.notes || '',
+                createdAt: createdAt || new Date(),
+                updatedAt: updatedAt || new Date(),
+                serviceId: data.serviceId || '',
+                serviceTitle,
+                clientId: data.clientId || '',
+                clientName,
+                trainerId: data.trainerId || '',
+                trainerName,
+            } as BookingViewModel;
+        } catch (error) {
+            console.error('Error fetching booking by ID:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Update booking status
+     * @param bookingId - Booking ID to update
+     * @param statusUpdate - Status update data
+     */
+    async updateBookingStatus(bookingId: string, statusUpdate: UpdateBookingStatusDto): Promise<void> {
+        if (!this.db) {
+            throw new Error('BookingService not initialized. Call initialize(db) first.');
+        }
+
+        if (!bookingId) {
+            throw new Error('bookingId is required');
+        }
+
+        try {
+            const bookingRef = doc(this.db, 'bookings', bookingId);
+            const updateData: any = {
+                status: statusUpdate.status,
+                updatedAt: serverTimestamp(),
+            };
+
+            if (statusUpdate.notes) {
+                updateData.notes = statusUpdate.notes;
+            }
+
+            await setDoc(bookingRef, updateData, { merge: true });
+        } catch (error) {
+            console.error('Error updating booking status:', error);
+            throw error;
+        }
     }
 }
 

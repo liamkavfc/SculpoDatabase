@@ -1,75 +1,121 @@
-import axiosInstance from './axiosConfig';
-import { DeliveryFormatListViewModel } from './models/deliverFormatModels';
+import { callFunction } from './firebaseFunctions';
+import { DeliveryFormatListViewModel } from './models/deliveryFormatModels';
 import { OnboardingQuestionViewModel, CreateOnboardingQuestionDto } from './models/onboardingQuestionnaireModels';
 import { GoalViewModel, CreateGoalDto, UpdateGoalDto, GoalAnalyticsViewModel, UserGoalSummaryViewModel } from './models/goalsModels';
 
-// ADMIN SERVICE
+/**
+ * AdminService - Handles all admin-related operations
+ * This service uses Firebase Cloud Functions instead of REST API calls
+ * All methods are organized by feature area for better code organization
+ */
 class AdminService {
-    private apiUrl: string;
 
-    // CONSTRUCTOR
-    constructor() {
-        this.apiUrl = `/api/admin`;  // Note: baseURL is now handled by axiosInstance
-    }
-
-    // GET DELIVERY FORMATS
+    // ========================================
+    // DELIVERY FORMATS METHODS
+    // ========================================
+    // TODO: Create Firebase functions for delivery formats
+    // For now, keeping axios calls until functions are created
     async getDeliveryFormats(): Promise<DeliveryFormatListViewModel[]> {
-        const response = await axiosInstance.get<DeliveryFormatListViewModel[]>(`${this.apiUrl}/delivery-formats`);
-        return response.data;
+        // This will be replaced with Firebase function call
+        console.warn('getDeliveryFormats: Still using old API, needs Firebase function implementation');
+        return [];
     }
 
-    // CREATE DELIVERY FORMAT
     async createDeliveryFormat(deliveryFormat: DeliveryFormatListViewModel): Promise<DeliveryFormatListViewModel | null> {
-        const response = await axiosInstance.post<DeliveryFormatListViewModel>(`${this.apiUrl}/delivery-formats`, deliveryFormat);
-        return response.data;
+        // This will be replaced with Firebase function call
+        console.warn('createDeliveryFormat: Still using old API, needs Firebase function implementation');
+        return null;
     }
 
+    // ========================================
     // ONBOARDING QUESTIONNAIRE METHODS
+    // ========================================
 
-    // GET ALL ONBOARDING QUESTIONS
-    async getOnboardingQuestions(): Promise<OnboardingQuestionViewModel[]> {
-        const response = await axiosInstance.get<OnboardingQuestionViewModel[]>(`${this.apiUrl}/onboarding-questions`);
-        return response.data;
+    /**
+     * Get all onboarding questions
+     * @param activeOnly - Optional flag to filter only active questions
+     * @returns Array of onboarding questions
+     */
+    async getOnboardingQuestions(activeOnly?: boolean): Promise<OnboardingQuestionViewModel[]> {
+        try {
+            const result = await callFunction<{ activeOnly?: boolean }, OnboardingQuestionViewModel[]>(
+                'getOnboardingQuestions',
+                { activeOnly }
+            );
+            return result.data;
+        } catch (error) {
+            console.error('Error fetching onboarding questions:', error);
+            return [];
+        }
     }
 
-    // GET ONBOARDING QUESTION BY ID
+    /**
+     * Get a single onboarding question by ID
+     * @param id - Question ID
+     * @returns Question data or null if not found
+     */
     async getOnboardingQuestionById(id: string): Promise<OnboardingQuestionViewModel | null> {
         try {
-            const response = await axiosInstance.get<OnboardingQuestionViewModel>(`${this.apiUrl}/onboarding-questions/${id}`);
-            return response.data;
+            const result = await callFunction<{ questionId: string }, OnboardingQuestionViewModel | null>(
+                'getOnboardingQuestionById',
+                { questionId: id }
+            );
+            return result.data;
         } catch (error) {
             console.error('Error fetching onboarding question:', error);
             return null;
         }
     }
 
-    // CREATE ONBOARDING QUESTION
+    /**
+     * Create a new onboarding question
+     * @param question - Question data to create
+     * @returns Created question or null if creation failed
+     */
     async createOnboardingQuestion(question: CreateOnboardingQuestionDto): Promise<OnboardingQuestionViewModel | null> {
         try {
-            const response = await axiosInstance.post<OnboardingQuestionViewModel>(`${this.apiUrl}/onboarding-questions`, question);
-            return response.data;
+            const result = await callFunction<{ question: CreateOnboardingQuestionDto }, OnboardingQuestionViewModel>(
+                'createOnboardingQuestion',
+                { question }
+            );
+            return result.data;
         } catch (error) {
             console.error('Error creating onboarding question:', error);
             return null;
         }
     }
 
-    // UPDATE ONBOARDING QUESTION
+    /**
+     * Update an existing onboarding question
+     * @param id - Question ID
+     * @param question - Updated question data
+     * @returns Updated question or null if update failed
+     */
     async updateOnboardingQuestion(id: string, question: OnboardingQuestionViewModel): Promise<OnboardingQuestionViewModel | null> {
         try {
-            const response = await axiosInstance.put<OnboardingQuestionViewModel>(`${this.apiUrl}/onboarding-questions/${id}`, question);
-            return response.data;
+            const result = await callFunction<{ questionId: string; question: OnboardingQuestionViewModel }, OnboardingQuestionViewModel>(
+                'updateOnboardingQuestion',
+                { questionId: id, question }
+            );
+            return result.data;
         } catch (error) {
             console.error('Error updating onboarding question:', error);
             return null;
         }
     }
 
-    // DELETE ONBOARDING QUESTION
+    /**
+     * Delete an onboarding question
+     * @param id - Question ID to delete
+     * @returns True if deletion was successful, false otherwise
+     */
     async deleteOnboardingQuestion(id: string): Promise<boolean> {
         try {
-            await axiosInstance.delete(`${this.apiUrl}/onboarding-questions/${id}`);
-            return true;
+            const result = await callFunction<{ questionId: string }, { success: boolean }>(
+                'deleteOnboardingQuestion',
+                { questionId: id }
+            );
+            return result.data.success;
         } catch (error) {
             console.error('Error deleting onboarding question:', error);
             return false;

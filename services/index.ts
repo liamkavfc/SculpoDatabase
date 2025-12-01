@@ -6,15 +6,27 @@ export { default as ClientService } from './clientService';
 export { default as ProfileService } from './profileService';
 export { default as ServicesService } from './servicesService';
 export { default as GoalsService } from './goalsService';
+export { default as QuestionnaireService } from './questionnaireService';
+export { default as AvailabilityService } from './availabilityService';
+export { default as DashboardService } from './dashboardService';
 export { default as axiosInstance } from './axiosConfig';
+
+// Export service initialization utility
+export { initializeServices } from './initializeServices';
+
+// Export Firebase functions utility (deprecated - use direct Firestore queries instead)
+export { callFunction, initializeFirebaseFunctions } from './firebaseFunctions';
 
 // Export all models
 export * from './models/bookingModels';
-export * from './models/deliverFormatModels';
+export * from './models/deliveryFormatModels';
 export * from './models/servicesModels';
 export * from './models/onboardingQuestionnaireModels';
 export * from './models/goalsModels';
 export * from './models/dashboardModels';
+
+// Export questionnaire service types
+export type { QuestionnaireAnswer } from './questionnaireService';
 
 // Export interfaces from profileService
 export type { 

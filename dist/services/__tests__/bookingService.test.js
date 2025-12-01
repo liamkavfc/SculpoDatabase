@@ -10,8 +10,8 @@ describe('BookingService Enhanced Features', () => {
         clientId: "client_456",
         trainerId: "trainer_789",
         bookingDate: new Date("2024-01-15"),
-        startTime: "09:00:00",
-        endTime: "10:00:00",
+        startTime: new Date("2024-01-15T09:00:00"),
+        endTime: new Date("2024-01-15T10:00:00"),
         deliveryFormatId: "format_001",
         deliveryFormatOptionId: "option_001",
         notes: "Test booking session"
@@ -35,7 +35,7 @@ describe('BookingService Enhanced Features', () => {
     test('bookService method with all required parameters', () => {
         // Validate enhanced bookService method signature
         expect(typeof BookingService.bookService).toBe('function');
-        const methodCall = BookingService.bookService("service_123", "client_456", "trainer_789", new Date("2024-01-15"), "09:00:00", "10:00:00", "format_001", "option_001", "Test booking");
+        const methodCall = BookingService.bookService("service_123", "client_456", "trainer_789", new Date("2024-01-15"), new Date("2024-01-15T09:00:00"), new Date("2024-01-15T10:00:00"), "format_001", "option_001", "Test booking");
         expect(methodCall).toBeInstanceOf(Promise);
     });
     test('CreateBookingDto interface has all required fields', () => {
@@ -45,8 +45,8 @@ describe('BookingService Enhanced Features', () => {
             clientId: "test",
             trainerId: "test",
             bookingDate: new Date(),
-            startTime: "09:00:00",
-            endTime: "10:00:00",
+            startTime: new Date("2024-01-15T09:00:00"),
+            endTime: new Date("2024-01-15T10:00:00"),
             deliveryFormatId: "test", // Required field
             deliveryFormatOptionId: "test", // Required field
             notes: "optional"
@@ -97,8 +97,8 @@ describe('BookingService Usage Examples', () => {
                 clientId: "client_456",
                 trainerId: "trainer_789",
                 bookingDate: new Date("2024-01-15"),
-                startTime: "09:00:00",
-                endTime: "10:00:00",
+                startTime: new Date("2024-01-15T09:00:00"),
+                endTime: new Date("2024-01-15T10:00:00"),
                 deliveryFormatId: "format_001",
                 deliveryFormatOptionId: "option_001",
                 notes: "First session with new trainer"

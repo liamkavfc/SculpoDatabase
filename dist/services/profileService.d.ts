@@ -30,6 +30,9 @@ export interface ProfileFullViewModel {
     phoneNumber: string | null;
     userType: UserType;
     about: string | null;
+    qualifications: string | null;
+    specialisms: string | null;
+    gyms: string | null;
     newPassword: string | null;
     userId: string;
     height: number | null;
@@ -51,5 +54,6 @@ export interface ExtendedProfileInfo {
 export declare enum UserType {
     Admin = 0,
     Trainer = 1,
-    Client = 2
+    Client = 2,
+    ExternalClient = 3
 }

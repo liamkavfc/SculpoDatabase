@@ -13,5 +13,6 @@ export * from './models/deliverFormatModels';
 export * from './models/servicesModels';
 export * from './models/onboardingQuestionnaireModels';
 export * from './models/goalsModels';
+export * from './models/dashboardModels';
 // Export enum as value
 export { UserType } from './profileService';

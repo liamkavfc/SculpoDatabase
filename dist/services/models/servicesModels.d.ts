@@ -7,6 +7,7 @@ export interface ServiceFullViewModel {
     trainerId: string;
     serviceImageUrl?: string;
     images?: string[];
+    serviceDetails?: string[];
     deliveryFormatId: string;
     deliveryFormat: DeliveryFormatListViewModel;
     deliveryFormatOptionId: string;

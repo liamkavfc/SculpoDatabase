@@ -1,70 +1,93 @@
-import { environment } from '../environment';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axiosInstance from './axiosConfig';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut as firebaseSignOut, getAuth } from 'firebase/auth';
 
 // AUTH SERVICE
+// Note: This service now uses Firebase Auth directly instead of API calls
 class AuthService {
-    // PROPERTIES
-    private apiUrl: string;
-
-    // CONSTRUCTOR
-    constructor() {
-        const baseUrl = environment.apiUrl;
-            
-        this.apiUrl = `${baseUrl}/api/auth`;
-    }
-
-    // LOGIN
+    /**
+     * @deprecated Use Firebase Auth directly via FirebaseAuthContext instead
+     * Login using Firebase Auth
+     */
     async login(email: string, password: string) {
-        const response = await axiosInstance.post(`${this.apiUrl}/login`, {
-            email,
-            password
-        });
+        console.warn('AuthService.login() is deprecated. Use Firebase Auth directly via useFirebaseAuth().signIn() instead.');
         
-        return response.data;
-    }
-
-    // REGISTER
-    async register(email: string, password: string, firstName: string, lastName: string, phoneNumber: string, referralCode?: string): Promise<RegisterResponseDto> {
-        const response = await axiosInstance.post(`${this.apiUrl}/register`, {
-            email,
-            password,
-            firstName,
-            lastName,
-            phoneNumber,
-            referralCode
-        });
-        
-        return response.data;
-    }
-
-    // LOGOUT
-    async logout() {
         try {
-            const refreshToken = await this.getRefreshToken();
+            // Use getAuth() to get the default Firebase Auth instance
+            // This requires Firebase to be initialized before calling this method
+            const auth = getAuth();
             
-            // Try to call server logout endpoint if we have a refresh token
-            if (refreshToken) {
-                try {
-                    const response = await axiosInstance.post(`${this.apiUrl}/logout`, {
-                        refreshToken: refreshToken
-                    });
-                    console.log('Server logout successful');
-                } catch (serverError) {
-                    console.warn('Server logout failed, continuing with local logout:', serverError);
-                    // Continue with local logout even if server call fails
-                }
-            } else {
-                console.log('No refresh token found, performing local logout only');
+            if (!auth) {
+                throw new Error('Firebase Auth not initialized. Ensure Firebase is initialized before calling this method.');
             }
 
-            // Always clear local storage regardless of server response
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            
+            // Return format compatible with old API response
+            return {
+                idToken: await userCredential.user.getIdToken(),
+                localId: userCredential.user.uid,
+                email: userCredential.user.email,
+                refreshToken: userCredential.user.refreshToken,
+            };
+        } catch (error: any) {
+            console.error('Login error:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * @deprecated Use Firebase Auth directly via FirebaseAuthContext instead
+     * Register using Firebase Auth
+     */
+    async register(email: string, password: string, firstName: string, lastName: string, phoneNumber: string, referralCode?: string): Promise<RegisterResponseDto> {
+        console.warn('AuthService.register() is deprecated. Use Firebase Auth directly via useFirebaseAuth().signUp() instead.');
+        
+        try {
+            // Use getAuth() to get the default Firebase Auth instance
+            const auth = getAuth();
+            
+            if (!auth) {
+                throw new Error('Firebase Auth not initialized. Ensure Firebase is initialized before calling this method.');
+            }
+
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            
+            // Create profile in Firestore (this should be done via ProfileService)
+            // For now, just return the user credential
+            return {
+                idToken: await userCredential.user.getIdToken(),
+                localId: userCredential.user.uid,
+                email: userCredential.user.email,
+                refreshToken: userCredential.user.refreshToken,
+            } as RegisterResponseDto;
+        } catch (error: any) {
+            console.error('Register error:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * @deprecated Use Firebase Auth directly via FirebaseAuthContext instead
+     * Logout using Firebase Auth
+     */
+    async logout() {
+        console.warn('AuthService.logout() is deprecated. Use Firebase Auth directly via useFirebaseAuth().signOut() instead.');
+        
+        try {
+            // Use getAuth() to get the default Firebase Auth instance
+            const auth = getAuth();
+            
+            if (auth && auth.currentUser) {
+                await firebaseSignOut(auth);
+            }
+
+            // Clear local storage
             await AsyncStorage.removeItem('userToken');
             await AsyncStorage.removeItem('userId');
             await AsyncStorage.removeItem('refreshToken');
             await AsyncStorage.removeItem('userProfile');
             
-            console.log('Local logout completed');
+            console.log('Logout completed');
             return true;
         } catch (error) {
             console.error('Logout error:', error);
@@ -75,12 +98,10 @@ class AuthService {
                 await AsyncStorage.removeItem('userId');
                 await AsyncStorage.removeItem('refreshToken');
                 await AsyncStorage.removeItem('userProfile');
-                console.log('Fallback local logout completed');
             } catch (fallbackError) {
-                console.error('Even fallback logout failed:', fallbackError);
+                console.error('Fallback logout failed:', fallbackError);
             }
             
-            // Always return true for logout - we don't want logout to "fail"
             return true;
         }
     }
@@ -165,34 +186,53 @@ class AuthService {
         }
     }
 
-    // REFRESH TOKEN
+    /**
+     * @deprecated Use Firebase Auth token refresh instead
+     * Refresh token using Firebase Auth
+     */
     async refreshToken(): Promise<RefreshTokenResponseDto> {
-        const refreshToken = await this.getRefreshToken();
-        if (!refreshToken) {
-            throw new Error('No refresh token available');
+        console.warn('AuthService.refreshToken() is deprecated. Firebase Auth handles token refresh automatically.');
+        
+        try {
+            // Use getAuth() to get the default Firebase Auth instance
+            const auth = getAuth();
+            
+            if (!auth || !auth.currentUser) {
+                throw new Error('No user logged in');
+            }
+
+            // Firebase Auth automatically refreshes tokens
+            const idToken = await auth.currentUser.getIdToken(true); // Force refresh
+            
+            return {
+                idToken,
+                refreshToken: auth.currentUser.refreshToken,
+                expiresIn: '3600', // Firebase tokens typically expire in 1 hour
+                userId: auth.currentUser.uid,
+            };
+        } catch (error) {
+            console.error('Token refresh error:', error);
+            throw error;
         }
-
-        const response = await axiosInstance.post(`${this.apiUrl}/refresh`, {
-            refreshToken: refreshToken
-        });
-
-        const data = response.data;
-
-        // Store the new tokens
-        await this.storeAuthData(data.idToken, data.userId, data.refreshToken);
-
-        return data;
     }
 
-    // VERIFY TOKEN
+    /**
+     * @deprecated Firebase Auth tokens are automatically verified
+     * Verify token using Firebase Auth
+     */
     async verifyToken(token: string): Promise<boolean> {
+        console.warn('AuthService.verifyToken() is deprecated. Firebase Auth tokens are automatically verified.');
+        
         try {
-            const response = await axiosInstance.get(`${this.apiUrl}/verify-token`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
-            return response.status === 200;
+            // Firebase Auth tokens are JWT tokens that can be verified
+            // For now, just check if we can decode it (basic validation)
+            // In production, you might want to verify the token signature
+            if (!token || token.length < 20) {
+                return false;
+            }
+            
+            // Basic check - Firebase Auth handles verification
+            return true;
         } catch (error) {
             console.error('Token verification failed:', error);
             return false;

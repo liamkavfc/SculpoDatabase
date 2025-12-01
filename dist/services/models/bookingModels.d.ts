@@ -1,3 +1,4 @@
+import { Timestamp } from "firebase-admin/firestore";
 export declare enum BookingStatus {
     Pending = 0,
     Confirmed = 1,
@@ -13,11 +14,12 @@ export interface CreateBookingDto {
     clientId: string;
     trainerId: string;
     bookingDate: Date;
-    startTime: string;
-    endTime: string;
+    startTime: Date;
+    endTime: Date;
     deliveryFormatId: string;
     deliveryFormatOptionId: string;
     notes?: string;
+    clientName?: string;
 }
 export interface BookingViewModel {
     id: string;
@@ -27,14 +29,14 @@ export interface BookingViewModel {
     clientName: string;
     trainerId: string;
     trainerName: string;
-    bookingDate: Date;
-    startTime: string;
-    endTime: string;
+    bookingDate: Timestamp;
+    startTime: Timestamp;
+    endTime: Date;
     status: BookingStatus;
     price: number;
     notes?: string;
-    createdAt: Date;
-    updatedAt?: Date;
+    createdAt: Timestamp;
+    updatedAt?: Timestamp;
 }
 export interface UpdateBookingStatusDto {
     status: BookingStatus;
@@ -84,7 +86,6 @@ export interface BlockTimeSlotDto {
     date: Date;
     startTime: string;
     endTime: string;
-    reason: string;
 }
 export interface CreateBookingResponse {
     bookingId: string;

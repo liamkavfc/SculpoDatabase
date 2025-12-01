@@ -37,6 +37,34 @@ class BookingService {
         const response = await axiosInstance.get(url);
         return response.data;
     }
+    /**
+     * Get all bookings (admin only) with optional filtering
+     * @param status - Optional status filter
+     * @param trainerId - Optional trainer filter
+     * @param clientId - Optional client filter
+     * @param startDate - Optional start date filter
+     * @param endDate - Optional end date filter
+     * @returns Promise with array of all bookings
+     */
+    async getAllBookings(filters) {
+        let url = `${this.apiUrl}/admin/all`;
+        const params = new URLSearchParams();
+        if (filters?.status)
+            params.append('status', filters.status);
+        if (filters?.trainerId)
+            params.append('trainerId', filters.trainerId);
+        if (filters?.clientId)
+            params.append('clientId', filters.clientId);
+        if (filters?.startDate)
+            params.append('startDate', filters.startDate.toISOString());
+        if (filters?.endDate)
+            params.append('endDate', filters.endDate.toISOString());
+        if (params.toString()) {
+            url += `?${params.toString()}`;
+        }
+        const response = await axiosInstance.get(url);
+        return response.data;
+    }
     async updateBookingStatus(bookingId, statusUpdate) {
         await axiosInstance.put(`${this.apiUrl}/${bookingId}/status`, statusUpdate);
     }
@@ -175,14 +203,16 @@ class BookingService {
      * @param clientId - The client making the booking
      * @param trainerId - The trainer providing the service
      * @param bookingDate - The date of the booking
-     * @param startTime - Start time in HH:MM:SS format
-     * @param endTime - End time in HH:MM:SS format
+     * @param startTime - Start time as DateTime
+     * @param endTime - End time as DateTime
      * @param deliveryFormatId - The delivery format for the service
      * @param deliveryFormatOptionId - The specific delivery format option
      * @param notes - Optional notes for the booking
      * @returns Promise with the created booking ID
      */
-    async bookService(serviceId, clientId, trainerId, bookingDate, startTime, endTime, deliveryFormatId, deliveryFormatOptionId, notes) {
+    async bookService(serviceId, clientId, trainerId, bookingDate, startTime, // Changed from string to Date
+    endTime, // Changed from string to Date
+    deliveryFormatId, deliveryFormatOptionId, notes) {
         const booking = {
             serviceId,
             clientId,

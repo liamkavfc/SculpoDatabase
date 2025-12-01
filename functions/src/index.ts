@@ -7,11 +7,20 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-import {setGlobalOptions} from "firebase-functions";
+import {setGlobalOptions} from "firebase-functions/v2";
 import * as admin from "firebase-admin";
 import { getUsersByTrainerId } from "./admin/users/getUsersByTrainerId";
 import { sendBookingConfirmation } from "./admin/users/bookings/sendBookingConfirmation";
-import { fetchDashboardMetrics } from "./admin/users/fetchDashboardMetrics";
+import { getBookingsByUserId } from "./admin/users/getBookingsByUserId";
+import { setTrainerAvailability } from "./admin/availability/setTrainerAvailability";
+import { blockTimeSlot } from "./admin/availability/blockTimeSlot";
+import { getTrainerAvailability } from "./admin/availability/getTrainerAvailability";
+import { getOnboardingAnswers } from "./admin/questionnaire/getOnboardingAnswers";
+import { getOnboardingQuestions } from "./admin/questionnaire/getOnboardingQuestions";
+import { getOnboardingQuestionById } from "./admin/questionnaire/getOnboardingQuestionById";
+import { createOnboardingQuestion } from "./admin/questionnaire/createOnboardingQuestion";
+import { updateOnboardingQuestion } from "./admin/questionnaire/updateOnboardingQuestion";
+import { deleteOnboardingQuestion } from "./admin/questionnaire/deleteOnboardingQuestion";
 
 admin.initializeApp();
 
@@ -34,4 +43,17 @@ setGlobalOptions({ maxInstances: 5 });
 //   logger.info("Hello logs!", {structuredData: true});
 //   response.send("Hello from Firebase!");
 // });
-export { getUsersByTrainerId, sendBookingConfirmation, fetchDashboardMetrics };
+export { 
+    getUsersByTrainerId, 
+    sendBookingConfirmation, 
+    getBookingsByUserId,
+    setTrainerAvailability,
+    blockTimeSlot,
+    getTrainerAvailability,
+    getOnboardingAnswers,
+    getOnboardingQuestions,
+    getOnboardingQuestionById,
+    createOnboardingQuestion,
+    updateOnboardingQuestion,
+    deleteOnboardingQuestion
+};

@@ -12,7 +12,8 @@
           "fieldPath": "date",
           "order": "ASCENDING"
         }
-      ]
+      ],
+      "density": "SPARSE_ALL"
     },
     {
       "collectionGroup": "bookings",
@@ -30,7 +31,8 @@
           "fieldPath": "bookingDate",
           "order": "ASCENDING"
         }
-      ]
+      ],
+      "density": "SPARSE_ALL"
     },
     {
       "collectionGroup": "goals",
@@ -44,7 +46,8 @@
           "fieldPath": "order",
           "order": "ASCENDING"
         }
-      ]
+      ],
+      "density": "SPARSE_ALL"
     }
   ],
   "fieldOverrides": []

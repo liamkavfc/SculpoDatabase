@@ -13,8 +13,8 @@ describe('BookingService Enhanced Features', () => {
         clientId: "client_456", 
         trainerId: "trainer_789",
         bookingDate: new Date("2024-01-15"),
-        startTime: "09:00:00",
-        endTime: "10:00:00",
+        startTime: new Date("2024-01-15T09:00:00"),
+        endTime: new Date("2024-01-15T10:00:00"),
         deliveryFormatId: "format_001",
         deliveryFormatOptionId: "option_001",
         notes: "Test booking session"
@@ -49,8 +49,8 @@ describe('BookingService Enhanced Features', () => {
             "client_456",
             "trainer_789",
             new Date("2024-01-15"),
-            "09:00:00",
-            "10:00:00",
+            new Date("2024-01-15T09:00:00"),
+            new Date("2024-01-15T10:00:00"),
             "format_001",
             "option_001",
             "Test booking"
@@ -65,8 +65,8 @@ describe('BookingService Enhanced Features', () => {
             clientId: "test",
             trainerId: "test",
             bookingDate: new Date(),
-            startTime: "09:00:00",
-            endTime: "10:00:00",
+            startTime: new Date("2024-01-15T09:00:00"),
+            endTime: new Date("2024-01-15T10:00:00"),
             deliveryFormatId: "test", // Required field
             deliveryFormatOptionId: "test", // Required field
             notes: "optional"
@@ -125,8 +125,8 @@ describe('BookingService Usage Examples', () => {
                 clientId: "client_456", 
                 trainerId: "trainer_789",
                 bookingDate: new Date("2024-01-15"),
-                startTime: "09:00:00",
-                endTime: "10:00:00",
+                startTime: new Date("2024-01-15T09:00:00"),
+                endTime: new Date("2024-01-15T10:00:00"),
                 deliveryFormatId: "format_001",
                 deliveryFormatOptionId: "option_001",
                 notes: "First session with new trainer"
