@@ -9,7 +9,7 @@ export { default as GoalsService } from './goalsService';
 export { default as QuestionnaireService } from './questionnaireService';
 export { default as AvailabilityService } from './availabilityService';
 export { default as DashboardService } from './dashboardService';
-export { default as axiosInstance } from './axiosConfig';
+// axiosInstance removed - using Firebase directly now
 
 // Export service initialization utility
 export { initializeServices } from './initializeServices';

@@ -1,16 +1,18 @@
-import { environment } from '../environment';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+// DEPRECATED: This file is no longer used. All API calls have been migrated to Firebase.
+// Keeping for reference but axios is not installed.
+// import { environment } from '../environment';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+// import axios from 'axios';
 
-// Create axios instance with default config
-const axiosInstance = axios.create({
-    baseURL: environment.apiUrl,
-    headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': '6941',
-    }
-});
+// DEPRECATED: Axios instance creation removed - using Firebase directly
+// const axiosInstance = axios.create({
+//     baseURL: environment.apiUrl,
+//     headers: {
+//         'Accept': 'application/json',
+//         'Content-Type': 'application/json',
+//         'ngrok-skip-browser-warning': '6941',
+//     }
+// });
 
 // Add request interceptor
 axiosInstance.interceptors.request.use(
@@ -120,4 +122,9 @@ axiosInstance.interceptors.response.use(
     }
 );
 
+// DEPRECATED: Export removed - use Firebase directly
+// export default axiosInstance;
+
+// Temporary stub to prevent import errors (services using this should be migrated)
+const axiosInstance = null as any;
 export default axiosInstance; 
