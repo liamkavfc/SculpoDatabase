@@ -393,15 +393,17 @@ class BookingService {
 
         try {
             // Fetch bookings where user is the trainer
+            const bookingsCollection = collection(this.db, 'bookings');
+            
             const trainerBookingsQuery = query(
-                collection(this.db, 'bookings'),
+                bookingsCollection,
                 where('trainerId', '==', userId)
             );
             const trainerBookingsSnapshot = await getDocs(trainerBookingsQuery);
 
             // Fetch bookings where user is the client
             const clientBookingsQuery = query(
-                collection(this.db, 'bookings'),
+                bookingsCollection,
                 where('clientId', '==', userId)
             );
             const clientBookingsSnapshot = await getDocs(clientBookingsQuery);
@@ -431,12 +433,14 @@ class BookingService {
 
             const allBookings = Array.from(bookingsMap.values());
 
-            // Enrich bookings with client and trainer names
+            // Enrich bookings with client names, trainer names, and service titles
             if (allBookings.length > 0) {
                 // Get unique client IDs
                 const clientIds = [...new Set(allBookings.map((b: any) => b.clientId).filter(Boolean))];
                 // Get unique trainer IDs
                 const trainerIds = [...new Set(allBookings.map((b: any) => b.trainerId).filter(Boolean))];
+                // Get unique service IDs
+                const serviceIds = [...new Set(allBookings.map((b: any) => b.serviceId).filter(Boolean))];
 
                 // Fetch client profiles using document references
                 const clientNamesMap = new Map<string, string>();
@@ -486,13 +490,50 @@ class BookingService {
                     }
                 });
 
-                // Add names to bookings
+                // Fetch service titles using document references
+                const serviceTitlesMap = new Map<string, string>();
+                const servicePromises = serviceIds.map(async (serviceId) => {
+                    try {
+                        const serviceRef = doc(this.db!, 'services', serviceId);
+                        const serviceSnapshot = await getDoc(serviceRef);
+                        if (serviceSnapshot.exists()) {
+                            const data = serviceSnapshot.data();
+                            const title = data.title || 'Unknown Service';
+                            return { id: serviceId, title };
+                        }
+                        return null;
+                    } catch (error) {
+                        console.warn(`Error fetching service ${serviceId}:`, error);
+                        return null;
+                    }
+                });
+                const serviceResults = await Promise.all(servicePromises);
+                serviceResults.forEach((result) => {
+                    if (result) {
+                        serviceTitlesMap.set(result.id, result.title);
+                    }
+                });
+
+                // Add names and service titles to bookings
                 allBookings.forEach((booking: any) => {
                     if (booking.clientId && clientNamesMap.has(booking.clientId)) {
                         booking.clientName = clientNamesMap.get(booking.clientId);
+                    } else if (booking.clientId) {
+                        booking.clientName = booking.clientName || 'Unknown Client';
                     }
+                    
                     if (booking.trainerId && trainerNamesMap.has(booking.trainerId)) {
                         booking.trainerName = trainerNamesMap.get(booking.trainerId);
+                    } else if (booking.trainerId) {
+                        booking.trainerName = booking.trainerName || 'Unknown Trainer';
+                    }
+                    
+                    if (booking.serviceId && serviceTitlesMap.has(booking.serviceId)) {
+                        booking.serviceTitle = serviceTitlesMap.get(booking.serviceId);
+                    } else if (booking.serviceId) {
+                        booking.serviceTitle = booking.serviceTitle || 'Unknown Service';
+                    } else {
+                        booking.serviceTitle = booking.serviceTitle || 'Unknown Service';
                     }
                 });
             }
